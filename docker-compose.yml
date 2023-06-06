@@ -1,0 +1,38 @@
+version: "3.1"
+services:
+  db:
+    image: postgres:15.2
+    ports:
+      - 5431:5431
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=GoPertama
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate:v4.15.2
+    profiles: ["tools"]
+    volumes:
+      - ./db/migrations:/migrations
+    entrypoint:
+      [
+        "migrate",
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://postgres:postgres@db:5432/postgres?sslmode=disable",
+      ]
+    command: ["up"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
